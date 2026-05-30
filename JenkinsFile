@@ -1,4 +1,4 @@
-\pipeline {
+pipeline {
 agent any
 
 ```
@@ -17,11 +17,9 @@ stages {
 
     stage('Docker Build & Deploy') {
         steps {
-
-            // Jenkins Credentials yaha inject honge
             withCredentials([
                 string(
-                    credentialsId: 'YOUR_GITHUB_TOKEN_CREDENTIAL_ID',
+                    credentialsId: 'github-token',
                     variable: 'GITHUB_TOKEN'
                 )
             ]) {
@@ -29,19 +27,11 @@ stages {
                 sh '''
                     docker build -t my-boot:latest .
 
-                    # Agar local docker run karna ho to:
-                    # docker run -d \
-                    #   -e GITHUB_TOKEN=$GITHUB_TOKEN \
-                    #   -p 8080:8080 \
-                    #   my-boot:latest
+                    kubectl create secret generic github-secret \
+                      --from-literal=GITHUB_TOKEN="$GITHUB_TOKEN" \
+                      --dry-run=client -o yaml | kubectl apply -f -
 
-                    # Kubernetes deploy
                     kubectl delete deployment spring-app --ignore-not-found=true
-
-                    # Yaha secret create/update kar sakte ho
-                    # kubectl create secret generic github-secret \
-                    #   --from-literal=GITHUB_TOKEN=$GITHUB_TOKEN \
-                    #   --dry-run=client -o yaml | kubectl apply -f -
 
                     kubectl apply -f K8s/Deployment.yaml
                 '''

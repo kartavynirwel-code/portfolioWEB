@@ -1,59 +1,55 @@
 pipeline {
-agent any
+    agent any
 
-```
-stages {
-    stage('Checkout') {
-        steps {
-            checkout scm
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
         }
-    }
 
-    stage('Build') {
-        steps {
-            sh './mvnw clean package -DskipTests'
+        stage('Build') {
+            steps {
+                sh './mvnw clean package -DskipTests'
+            }
         }
-    }
 
-    stage('Docker Build & Deploy') {
-        steps {
-            withCredentials([
-                string(
-                    credentialsId: 'github-token',
-                    variable: 'GITHUB_TOKEN'
-                )
-            ]) {
+        stage('Docker Build & Deploy') {
+            steps {
+                withCredentials([
+                    string(
+                        credentialsId: 'github-token',
+                        variable: 'GITHUB_TOKEN'
+                    )
+                ]) {
 
-                sh '''
-                    docker build -t my-boot:latest .
+                    sh '''
+                        docker build -t my-boot:latest .
 
-                    kubectl create secret generic github-secret \
-                      --from-literal=GITHUB_TOKEN="$GITHUB_TOKEN" \
-                      --dry-run=client -o yaml | kubectl apply -f -
+                        kubectl create secret generic github-secret \
+                          --from-literal=GITHUB_TOKEN="$GITHUB_TOKEN" \
+                          --dry-run=client -o yaml | kubectl apply -f -
 
-                    kubectl delete deployment spring-app --ignore-not-found=true
+                        kubectl delete deployment spring-app --ignore-not-found=true
 
-                    kubectl apply -f K8s/Deployment.yaml
-                '''
+                        kubectl apply -f K8s/Deployment.yaml
+                    '''
+                }
             }
         }
     }
-}
 
-post {
-    success {
-        mail to: 'kartavynirwel77@gmail.com',
-             subject: "✅ Build #${BUILD_NUMBER} Successful!",
-             body: "Website update ho gayi!\nBuild: ${BUILD_URL}"
+    post {
+        success {
+            mail to: 'kartavynirwel77@gmail.com',
+                 subject: "Build #${BUILD_NUMBER} Successful!",
+                 body: "Website update ho gayi!\nBuild: ${BUILD_URL}"
+        }
+
+        failure {
+            mail to: 'kartavynirwel77@gmail.com',
+                 subject: "Build #${BUILD_NUMBER} Failed!",
+                 body: "Build fail ho gayi!\nCheck karo: ${BUILD_URL}"
+        }
     }
-
-    failure {
-        mail to: 'kartavynirwel77@gmail.com',
-             subject: "❌ Build #${BUILD_NUMBER} Failed!",
-             body: "Build fail ho gayi!\nCheck karo: ${BUILD_URL}"
-    }
 }
-```
-
-}
-

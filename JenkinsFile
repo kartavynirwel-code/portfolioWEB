@@ -1,39 +1,36 @@
 pipeline {
     agent any
     stages {
-
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
-
         stage('Build') {
             steps {
                 sh './mvnw clean package -DskipTests'
             }
         }
-     stage('Docker Build & Deploy') {
-     steps {
-        sh '''
-            docker build -t my-boot:latest .
-            kubectl apply -f K8s/Deployment.yaml
-            kubectl rollout restart deployment/spring-app
-        '''
+        stage('Docker Build and Deploy') {
+            steps {
+                sh '''
+                    docker build -t my-boot:latest .
+                    kubectl apply -f K8s/Deployment.yaml
+                    kubectl rollout restart deployment/spring-app
+                '''
+            }
+        }
     }
-}
-
     post {
         success {
             mail to: 'kartavynirwel77@gmail.com',
-                 subject: "Build #${BUILD_NUMBER} Successful!",
-                 body: "Website update ho gayi!\nBuild: ${BUILD_URL}"
+                 subject: "Build ${BUILD_NUMBER} Successful",
+                 body: "Website update ho gayi! ${BUILD_URL}"
         }
-
         failure {
             mail to: 'kartavynirwel77@gmail.com',
-                 subject: "Build #${BUILD_NUMBER} Failed!",
-                 body: "Build fail ho gayi!\nCheck karo: ${BUILD_URL}"
+                 subject: "Build ${BUILD_NUMBER} Failed",
+                 body: "Check karo: ${BUILD_URL}"
         }
     }
 }
